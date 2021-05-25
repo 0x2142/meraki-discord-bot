@@ -9,18 +9,20 @@ import httpx
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
 # Meraki settings
-API_BASE_URL = 'https://api.meraki.com/api/v1'
-SHARED_SECRET = ''.join((secrets.choice(string.ascii_letters + 
-                  string.digits) for i in range(24)))
+API_BASE_URL = "https://api.meraki.com/api/v1"
+SHARED_SECRET = "".join(
+    (secrets.choice(string.ascii_letters + string.digits) for i in range(24))
+)
 
-class MerakiWebhook():
+
+class MerakiWebhook:
     def __init__(self, MERAKI_API_KEY, WEBHOOK_NAME, WEBHOOK_URL, NETWORK):
         self.NETWORK = NETWORK
         self.headers = {"X-Cisco-Meraki-API-Key": MERAKI_API_KEY}
         self.webhook_config = {
             "name": WEBHOOK_NAME,
-            "url": WEBHOOK_URL + '/post-msg-discord',
-            "sharedSecret": SHARED_SECRET
+            "url": WEBHOOK_URL + "/post-msg-discord",
+            "sharedSecret": SHARED_SECRET,
         }
         logging.info("Beginning Meraki API webhook check/create/update")
         self.webhookID = None
@@ -51,8 +53,8 @@ class MerakiWebhook():
         data = json.loads(response.text)
         logging.info(f"Got Network list, searching for network: {self.NETWORK}")
         for network in data:
-            if network['name'] == self.NETWORK:
-                self.networkID = network['id']
+            if network["name"] == self.NETWORK:
+                self.networkID = network["id"]
                 logging.info(f"Found Network: {self.NETWORK}, ID: {self.networkID}")
                 return
 
@@ -60,7 +62,7 @@ class MerakiWebhook():
         """
         Query list of all current configured webhooks
         """
-        url = API_BASE_URL + f'/networks/{self.networkID}/webhooks/httpServers'
+        url = API_BASE_URL + f"/networks/{self.networkID}/webhooks/httpServers"
 
         response = httpx.get(url, headers=self.headers)
         if response.status_code == 200:
@@ -70,8 +72,8 @@ class MerakiWebhook():
         if len(self.current_webhooks) >= 1:
             logging.info("Checking if we own any of the existing webhooks....")
             for config_item in self.current_webhooks:
-                if config_item['name'] == self.webhook_config['name']:
-                    self.webhookID = config_item['id']
+                if config_item["name"] == self.webhook_config["name"]:
+                    self.webhookID = config_item["id"]
                     logging.info(f"Found existing webhook ID: {self.webhookID}")
                     self.webhook_exists = True
 
@@ -95,7 +97,10 @@ class MerakiWebhook():
         Locate existing webhook ID created by this automation,
         then update with any new parameters
         """
-        url = API_BASE_URL + f"/networks/{self.networkID}/webhooks/httpServers/{self.webhookID}"
+        url = (
+            API_BASE_URL
+            + f"/networks/{self.networkID}/webhooks/httpServers/{self.webhookID}"
+        )
         logging.info(f"Updating existing webhook with ID: {self.webhookID}")
         attempt = 1
         while attempt <= 3:
@@ -115,11 +120,11 @@ class MerakiWebhook():
 
     def update_webhook_url(self, url):
         logging.info(f"Got request to update Meraki target webhook URL to: {url}")
-        self.webhook_config['url'] = (url + '/post-msg-discord')
+        self.webhook_config["url"] = url + "/post-msg-discord"
         if not self.webhookID:
             self.get_curent_webhooks()
         self.update_existing_webhook()
 
-    
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     MerakiWebhook()
