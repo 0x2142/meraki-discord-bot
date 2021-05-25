@@ -13,17 +13,17 @@ logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 class Settings(BaseSettings):
         # Store local settings
         BOT_BASE_URL = "http://localhost:8000"
-        USE_NGROK = False
-        try:
-                WEBHOOK_ID = os.environ.get("WEBHOOK_ID")
-                WEBHOOK_TOKEN = os.environ.get("WEBHOOK_TOKEN")
-        except:
-                logging.exception("Error: Could not collect Discord webook token/ID info. \
-                                   Please set the appropriate environmental variables")
+        USE_NGROK = True
+        
+        WEBHOOK_ID = os.environ.get("WEBHOOK_ID")
+        WEBHOOK_TOKEN = os.environ.get("WEBHOOK_TOKEN")
+        if WEBHOOK_ID == None or WEBHOOK_TOKEN == None:
+                logging.error("Error: Could not collect Discord webook token/ID info. " +
+                                   "Please set the appropriate environmental variables.")
                 sys.exit(1)
 
 
-class MerakiWebhook(BaseModel):
+class MerakiAlert(BaseModel):
         # Meraki API ver / secret
         version: float
         sharedSecret: str
@@ -51,32 +51,37 @@ class MerakiWebhook(BaseModel):
         occurredAt: str
         alertData: Optional[dict] = None
 
-if settings.USE_NGROK:
-        # Import ngrok library
+def setup_ngrok():
         from pyngrok import ngrok
 
         # Get uvicon port number
         port = sys.argv[sys.argv.index("--port") + 1] if "--port" in sys.argv else 8000
 
         # Open a new ngrok tunnel & Update settings
-        ngrok_url = ngrok.connect(port).public_url
+        ngrok_url = ngrok.connect(port, bind_tls=True).public_url
         settings.BOT_BASE_URL = ngrok_url
+        meraki.update_webhook_url(ngrok_url)
 
+settings = Settings()
+meraki = MerakiWebhook()
+if settings.USE_NGROK: setup_ngrok()
+logging.info(f"Accepting requests at: {settings.BOT_BASE_URL}")
+app = FastAPI()
 
 @app.post('/post-msg-discord')
-async def post_from_meraki(item: MerakiWebhook):
+async def post_from_meraki(item: MerakiAlert):
         logging.info("Got POST request")
-        if item.sharedSecret == meraki.SHARED_SECRET:
+        if item.sharedSecret == meraki.webhook_config['sharedSecret']:
                 logging.info("API secret matches")
-                print(item)
+                logging.info(item)
                 sendDiscordMsg(item)
-                return {'message': 'Got it!'}
+                return {'message': 'Message received'}
         else:
                 logging.error(f"Received bad API secret: {item.sharedSecret}")
                 return {'message': 'Bad webhook secret'}
 
 
-async def sendDiscordMsg(data):
+def sendDiscordMsg(data):
         """
         Send alert via Discord webhooks
         """
@@ -98,13 +103,11 @@ async def sendDiscordMsg(data):
 
 def formatMessage(data):
         logging.info("Formatting message payload...")
-        message = []
-        message.append(data['deviceModel'])
-        message.append(data['alertTypeId'])
-        message = message.join('\r\n')
-        return message
-
-if __name__ == '__main__':
-        settings = Settings()
-        meraki = MerakiWebHook()
-        app = FastAPI()
+        message = [":alarm_clock: :alarm_clock: Meraki Alert :alarm_clock: :alarm_clock: "]
+        message.append(f"Alert for device: {data.deviceName}")
+        message.append(f"Message info: {data.alertTypeId}")
+        message.append(f"Occurred at: {data.occurredAt}")
+        sendmessage = ""
+        for each in message:
+                sendmessage += each + "\r\n"
+        return sendmessage

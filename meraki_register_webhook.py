@@ -3,13 +3,14 @@ import logging
 import os
 import secrets
 import string
-
+from time import sleep
 import httpx
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
 API_BASE_URL = 'https://api.meraki.com/api/v1'
-SHARED_SECRET = ''.join((secrets.choice(string.ascii_letters + string.digits + string.punctuation) for i in range(24)))
+SHARED_SECRET = ''.join((secrets.choice(string.ascii_letters + 
+                  string.digits) for i in range(24)))
 
 NETWORK = os.environ.get("MERAKI_TARGET_NETWORK_NAME")
 WEBHOOK_URL = os.environ.get("MERAKI_TARGET_WEBHOOK_URL")
@@ -21,10 +22,11 @@ class MerakiWebhook():
         self.headers = {"X-Cisco-Meraki-API-Key": MERAKI_API_KEY}
         self.webhook_config = {
             "name": WEBHOOK_NAME,
-            "url": WEBHOOK_URL,
+            "url": WEBHOOK_URL + '/post-msg-discord',
             "sharedSecret": SHARED_SECRET
         }
         logging.info("Beginning Meraki API webhook check/create/update")
+        self.webhookID = None
         self.get_org_id()
         self.get_network_id()
         self.get_curent_webhooks()
@@ -84,12 +86,12 @@ class MerakiWebhook():
         logging.info("Attempting to create new webhook config")
         response = httpx.post(url, json=self.webhook_config, headers=self.headers)
         if response.status_code == 200:
-            webhook = json.loads(response.text)
-            logging.info(f"New webhook created, ID: {webhook['id']}")
-            print(response.text)
+            logging.info("Successfully updated webhook with new config")
+            return
         else:
-            logging.error("Failed to create new webhook. Error:")
-            logging.error(response.text)
+            logging.error("Failed to update webhook. Error:")
+            logging.error(f"Status code: {response.status_code}")
+            logging.error(f"Message: {response.text}")
 
     def update_existing_webhook(self):
         """
@@ -98,13 +100,29 @@ class MerakiWebhook():
         """
         url = API_BASE_URL + f"/networks/{self.networkID}/webhooks/httpServers/{self.webhookID}"
         logging.info(f"Updating existing webhook with ID: {self.webhookID}")
-        response = httpx.put(url, json=self.webhook_config, headers=self.headers)
-        if response.status_code == 200:
-            logging.info("Successfully updated webhook with new config")
-        else:
-            logging.error("Failed to update webhook. Error:")
-            logging.error(response.text)
+        attempt = 1
+        while attempt <= 3:
+            logging.info("Sending PUT to update webhook...")
+            response = httpx.put(url, json=self.webhook_config, headers=self.headers)
+            if response.status_code == 200:
+                logging.info("Successfully updated webhook with new config")
+                return
+            else:
+                logging.error("Failed to update webhook. Error:")
+                logging.error(f"Status code: {response.status_code}")
+                logging.error(f"Message: {response.text}")
+                logging.error(f"Attempt {attempt} of 3... retrying...")
+                sleep(2)
+                attempt += 1
+        logging.error("Failed to update Meraki webhook.")
 
+    def update_webhook_url(self, url):
+        logging.info(f"Got request to update Meraki target webhook URL to: {url}")
+        self.webhook_config['url'] = (url + '/post-msg-discord')
+        if not self.webhookID:
+            self.get_curent_webhooks()
+        self.update_existing_webhook()
 
+    
 if __name__ == '__main__':
     MerakiWebhook()
