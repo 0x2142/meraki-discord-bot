@@ -17,6 +17,8 @@ Since receiving a webhook requires a public-facing URL, I opted to use ngrok to 
 
 I may add support for additional destinations later on, like Slack or WebEx. 
 
+Also - I've been looking for a reason to play with fastapi, so here it is!  
+
 
 ### Initial instructions:
  1. Install `pip install -r requirements.txt`
