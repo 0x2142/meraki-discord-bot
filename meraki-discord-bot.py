@@ -92,7 +92,6 @@ class MerakiAlert(BaseModel):
 
 ## Main Stuffs:
 settings = Settings()
-# if settings.USE_NGROK: setup_ngrok()
 meraki = MerakiWebhook(
     settings.MERAKI_API_KEY,
     settings.WEBHOOK_NAME,
@@ -136,11 +135,17 @@ def sendDiscordMsg(data):
 
 
 def formatMessage(data):
+    """
+    Format incoming message before passing to Discord
+    """
     logging.info("Formatting message payload...")
-    message = [":alarm_clock: :alarm_clock: Meraki Alert :alarm_clock: :alarm_clock: "]
-    message.append(f"Alert for device: {data.deviceName}")
-    message.append(f"Message info: {data.alertTypeId}")
-    message.append(f"Occurred at: {data.occurredAt}")
+    time = (data.occurredAt).split("T")
+    message = [":alarm_clock: __**Meraki Alert**__ :alarm_clock: "]
+    message.append(f"**Device:** {data.deviceName}")
+    message.append(f"**Message info:** {data.alertType}")
+    message.append(f"**Occurred at:** {time[0]} - {time[1][:8]}")
+    if len(data.alertData) > 0:
+        message.append(f"**Additional data:** ```fix\r\n{data.alertData}\r\n```")
     sendmessage = ""
     for each in message:
         sendmessage += each + "\r\n"

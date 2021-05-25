@@ -17,6 +17,10 @@ SHARED_SECRET = "".join(
 
 class MerakiWebhook:
     def __init__(self, MERAKI_API_KEY, WEBHOOK_NAME, WEBHOOK_URL, NETWORK):
+        """
+        Pull in settings required for Meraki Dashboard API work,
+        then pull Org ID, Network ID, and create/update webhooks
+        """
         self.NETWORK = NETWORK
         self.headers = {"X-Cisco-Meraki-API-Key": MERAKI_API_KEY}
         self.webhook_config = {
@@ -119,12 +123,11 @@ class MerakiWebhook:
         logging.error("Failed to update Meraki webhook.")
 
     def update_webhook_url(self, url):
+        """
+        Update self config for webhook URL
+        """
         logging.info(f"Got request to update Meraki target webhook URL to: {url}")
         self.webhook_config["url"] = url + "/post-msg-discord"
         if not self.webhookID:
             self.get_curent_webhooks()
         self.update_existing_webhook()
-
-
-if __name__ == "__main__":
-    MerakiWebhook()
