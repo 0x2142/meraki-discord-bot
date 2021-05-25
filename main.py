@@ -15,8 +15,8 @@ class Settings(BaseSettings):
         BOT_BASE_URL = "http://localhost:8000"
         USE_NGROK = True
         
-        WEBHOOK_ID = os.environ.get("WEBHOOK_ID")
-        WEBHOOK_TOKEN = os.environ.get("WEBHOOK_TOKEN")
+        WEBHOOK_ID = os.environ.get("DISCORD_WEBHOOK_ID")
+        WEBHOOK_TOKEN = os.environ.get("DISCORD_WEBHOOK_TOKEN")
         if WEBHOOK_ID == None or WEBHOOK_TOKEN == None:
                 logging.error("Error: Could not collect Discord webook token/ID info. " +
                                    "Please set the appropriate environmental variables.")
@@ -81,7 +81,7 @@ async def post_from_meraki(item: MerakiAlert):
                 return {'message': 'Bad webhook secret'}
 
 
-def sendDiscordMsg(data):
+async def sendDiscordMsg(data):
         """
         Send alert via Discord webhooks
         """
