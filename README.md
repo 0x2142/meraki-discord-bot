@@ -1,6 +1,22 @@
 # meraki-discord-bot
 
-Readme in progress, some info below - but not yet completed! 
+Readme in progress, some info below - but not yet completed! Project is a work in progress, so please check back later for more updates.
+
+
+### Description:
+
+A quick bot to take in Meraki alerting webhooks via POST requests, then forward them to a desired Discord room.
+
+### Why did you build this? 
+
+Meraki allows you to specify a URL to send webhooks to - but unfortunately the data sent doesn't match up with what Discord requires for an incoming webhook.
+
+So I needed to write an intermediary that would take in the alert webhooks from Meraki, then format them to include the required parameters expected by Discord. 
+
+Since receiving a webhook requires a public-facing URL, I opted to use ngrok to generate ephemeral URLs & not have to permanantly host anything. This script will auto-update the Meraki Dashboard config with the current ngrok URL every time it starts.
+
+I may add support for additional destinations later on, like Slack or WebEx. 
+
 
 ### Initial instructions:
  1. Install `pip install -r requirements.txt`
