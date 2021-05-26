@@ -30,20 +30,21 @@ class MerakiWebhook:
         }
         logging.info("Beginning Meraki API webhook check/create/update")
         self.webhookID = None
-        self.get_org_id()
-        self.get_network_id()
-        self.get_curent_webhooks()
-        if self.webhook_exists:
-            self.update_existing_webhook()
-        else:
-            self.create_new_webhook()
+        with httpx.Client() as self.http_client:
+            self.get_org_id()
+            self.get_network_id()
+            self.get_curent_webhooks()
+            if self.webhook_exists:
+                self.update_existing_webhook()
+            else:
+                self.create_new_webhook()
 
     def get_org_id(self):
         """
         Query Meraki API for which Organizations we have access to & return Org ID
         """
         url = API_BASE_URL + "/organizations"
-        response = httpx.get(url, headers=self.headers)
+        response = self.http_client.get(url, headers=self.headers)
         orgID = json.loads(response.text)[0]["id"]
         logging.info(f"Using Org ID: {orgID}")
         self.orgID = orgID
@@ -53,7 +54,7 @@ class MerakiWebhook:
         Use Organization ID to pull list of networks we have access to
         """
         url = API_BASE_URL + f"/organizations/{self.orgID}/networks"
-        response = httpx.get(url, headers=self.headers)
+        response = self.http_client.get(url, headers=self.headers)
         data = json.loads(response.text)
         logging.info(f"Got Network list, searching for network: {self.NETWORK}")
         for network in data:
@@ -68,7 +69,7 @@ class MerakiWebhook:
         """
         url = API_BASE_URL + f"/networks/{self.networkID}/webhooks/httpServers"
 
-        response = httpx.get(url, headers=self.headers)
+        response = self.http_client.get(url, headers=self.headers)
         if response.status_code == 200:
             self.current_webhooks = json.loads(response.text)
             logging.info(f"Found {len(self.current_webhooks)} existing webhooks")
@@ -87,7 +88,7 @@ class MerakiWebhook:
         """
         url = API_BASE_URL + f"/networks/{self.networkID}/webhooks/httpServers"
         logging.info("Attempting to create new webhook config")
-        response = httpx.post(url, json=self.webhook_config, headers=self.headers)
+        response = self.http_client.post(url, json=self.webhook_config, headers=self.headers)
         if response.status_code == 201:
             logging.info("Successfully created new Meraki webhook")
             return
@@ -109,7 +110,7 @@ class MerakiWebhook:
         attempt = 1
         while attempt <= 3:
             logging.info("Sending PUT to update webhook...")
-            response = httpx.put(url, json=self.webhook_config, headers=self.headers)
+            response = self.http_client.put(url, json=self.webhook_config, headers=self.headers)
             if response.status_code == 200:
                 logging.info("Successfully updated webhook with new config")
                 return
