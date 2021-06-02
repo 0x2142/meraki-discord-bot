@@ -1,18 +1,24 @@
-import os, sys
+import asyncio
 import json
-from typing import Optional
-from fastapi import FastAPI
-from pydantic import BaseSettings, BaseModel
-from discord_webhook import DiscordWebhook
 import logging
+import os
+import sys
+from typing import Optional
+
+from discord_webhook import DiscordWebhook
+from fastapi import FastAPI
+from pydantic import BaseModel, BaseSettings
+from pyngrok import ngrok
+
 from meraki_register_webhook import MerakiWebhook
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
 
 def setup_ngrok():
-    from pyngrok import ngrok
-
+    """
+    Build ngrok tunnel for inbound webhook calls
+    """
     logging.info("ngrok enabled. Spinning up tunnels...")
 
     # Get uvicon port number
@@ -21,6 +27,24 @@ def setup_ngrok():
     # Open a new ngrok tunnel & Update settings
     ngrok_url = ngrok.connect(port, bind_tls=True).public_url
     return ngrok_url
+
+
+async def check_ngrok():
+    """
+    ngrok will re-establish session occasionally, which means new public URL.
+    This will check intermittently, and update Meraki's config if needed
+    """
+    while True:
+        await asyncio.sleep(30)
+        logging.info("Checking ngrok session...")
+        current_url = ngrok.get_tunnels()[0].public_url
+        logging.info(f"Current ngrok URL: {current_url}")
+        logging.info(f"Current webhook URL: {settings.WEBHOOK_URL}")
+        if current_url != settings.WEBHOOK_URL:
+            logging.info(
+                "Current ngrok URL does not match Meraki-configured URL. Need to update..."
+            )
+            meraki.update_webhook_url(current_url)
 
 
 class Settings(BaseSettings):
@@ -113,6 +137,12 @@ async def post_from_meraki(item: MerakiAlert):
     else:
         logging.error(f"Received bad API secret: {item.sharedSecret}")
         return {"message": "Bad webhook secret"}
+
+
+@app.on_event("startup")
+async def startup_event():
+    if settings.USE_NGROK:
+        asyncio.create_task(check_ngrok())
 
 
 def sendDiscordMsg(data):

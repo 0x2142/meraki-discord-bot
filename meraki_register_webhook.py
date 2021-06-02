@@ -44,7 +44,10 @@ class MerakiWebhook:
         Query Meraki API for which Organizations we have access to & return Org ID
         """
         url = API_BASE_URL + "/organizations"
-        response = self.http_client.get(url, headers=self.headers)
+        try:
+            response = self.http_client.get(url, headers=self.headers)
+        except httpx.ReadTimeout:
+            logging.exception("Error: Timed out trying to get Org ID")
         orgID = json.loads(response.text)[0]["id"]
         logging.info(f"Using Org ID: {orgID}")
         self.orgID = orgID
@@ -88,7 +91,9 @@ class MerakiWebhook:
         """
         url = API_BASE_URL + f"/networks/{self.networkID}/webhooks/httpServers"
         logging.info("Attempting to create new webhook config")
-        response = self.http_client.post(url, json=self.webhook_config, headers=self.headers)
+        response = self.http_client.post(
+            url, json=self.webhook_config, headers=self.headers
+        )
         if response.status_code == 201:
             logging.info("Successfully created new Meraki webhook")
             return
@@ -110,7 +115,9 @@ class MerakiWebhook:
         attempt = 1
         while attempt <= 3:
             logging.info("Sending PUT to update webhook...")
-            response = self.http_client.put(url, json=self.webhook_config, headers=self.headers)
+            response = self.http_client.put(
+                url, json=self.webhook_config, headers=self.headers
+            )
             if response.status_code == 200:
                 logging.info("Successfully updated webhook with new config")
                 return
