@@ -43,6 +43,7 @@ Also - I've been looking for a reason to play with fastapi, so here it is!
 | MERAKI_TARGET_NETWORK_NAME 	| Yes 	| Name of the Meraki network to attach an alert webhook. 	| Home Office 	|
 | MERAKI_API_KEY 	| Yes 	| API key to Meraki Dashboard, used to create/modify alerting webhook configuration 	| 1dc01da6a2e1asdfio434aaasdfasdf 	|
 | DISCORD_URL	| Yes 	| Discord webhook URL 	| https://discord.com/api/webhooks/bot_id/token 	|
+| NGROK_TOKEN | No | Authentication token for ngrok. If USE_NGROK is True, this will be used to build an authenticated ngrok tunnel. If no authentication token is provided, this script will use the free/unauthenticated ngrok tunnels - which will timout after some time & stop functioning | asdfDAsdfnjiwnri435oA | 
 | MERAKI_WEBHOOK_NAME 	| No 	| Name to use when creating the webhook in Meraki. This is used to track which webhook is owned by this bot. By default, will use "api-generated_Discord" 	| api-generated_Discord 	|
 | USE_NGROK | No | By default, this will spin up an ngrok tunnel to receive webhook POSTs. If you would rather provide a dedicated external URL, set this to False & provide a webhook URL| True |
 | MERAKI_TARGET_WEBHOOK_URL 	| No 	| URL for Meraki to send POST requests to. This is the externally facing URL of this bot.  Note: if USE_NGROK is False, this **must** be set. *MUST be https* 	| https://merakibot.local 	|

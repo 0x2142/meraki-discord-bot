@@ -21,6 +21,14 @@ def setup_ngrok():
     """
     logging.info("ngrok enabled. Spinning up tunnels...")
 
+    # Get Auth token:
+    NGROK_AUTH_TOKEN = os.environ.get("NGROK_TOKEN")
+    if not NGROK_AUTH_TOKEN:
+        logging.error("Missing config item: NGROK_TOKEN. Program will still run, but non-authenticated tunnels will break after some time...")
+    if NGROK_AUTH_TOKEN:
+        logging.info("Adding ngrok authentication token...")
+        ngrok.set_auth_token(NGROK_AUTH_TOKEN)
+
     # Get uvicon port number
     port = sys.argv[sys.argv.index("--port") + 1] if "--port" in sys.argv else 8000
 
@@ -31,7 +39,7 @@ def setup_ngrok():
 
 async def check_ngrok():
     """
-    ngrok will re-establish session occasionally, which means new public URL.
+    ngrok may re-establish session occasionally, which means new public URL.
     This will check intermittently, and update Meraki's config if needed
     """
     while True:
