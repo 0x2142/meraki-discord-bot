@@ -1,3 +1,8 @@
+# Note: This project is no longer maintained
+Meraki now supports native templating within Dashboard, so this bot is no longer needed. I submitted a discord template to the Meraki webhook template repo [here](https://github.com/meraki/webhook-payload-templates)
+
+***
+
 # meraki-discord-bot
 
 Readme in progress, some info below - but not yet completed! Project is a work in progress, so please check back later for more updates.
